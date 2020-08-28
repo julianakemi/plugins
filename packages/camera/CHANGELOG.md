@@ -1,3 +1,6 @@
+## 0.5.9
+* Added `enableTorch`, `disableTorch`, and `hasTorch` to `CameraController` to enable the use of the flash in torch mode (continuous on).
+
 ## 0.5.8+4
 
 * Android: Added support for JPEG callback in image stream.

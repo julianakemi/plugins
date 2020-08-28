@@ -49,6 +49,8 @@ public class Camera {
   private final Size captureSize;
   private final Size previewSize;
   private final boolean enableAudio;
+  private final boolean flashSupported;
+  private boolean torchEnabled = false;
   private final int imageFormat;
 
   private CameraDevice cameraDevice;
@@ -117,10 +119,38 @@ public class Camera {
     isFrontFacing =
         characteristics.get(CameraCharacteristics.LENS_FACING) == CameraMetadata.LENS_FACING_FRONT;
     ResolutionPreset preset = ResolutionPreset.valueOf(resolutionPreset);
+    Boolean flashInfoAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+    flashSupported = flashInfoAvailable == null ? false : flashInfoAvailable;
     recordingProfile =
         CameraUtils.getBestAvailableCamcorderProfileForResolutionPreset(cameraName, preset);
     captureSize = new Size(recordingProfile.videoFrameWidth, recordingProfile.videoFrameHeight);
     previewSize = computeBestPreviewSize(cameraName, preset);
+  }
+
+  // Will turn the torch on/off as long as the device and camera supports it
+  public void toggleTorch(boolean enable, @NonNull final Result result) {
+    try {
+      if (flashSupported) {
+        if (enable) {
+          captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
+          torchEnabled = true;
+        } else {
+          captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
+          torchEnabled = false;
+        }
+        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, null);
+        result.success(null);
+      } else {
+        result.error("flashFailed", "Flash is not supported on this device", "");
+      }
+    } catch (CameraAccessException e) {
+      result.error("cameraAccess", e.getMessage(), null);
+    }
+  }
+
+  // Returns true if camera supports the torch
+  public void hasTorch(@NonNull final Result result) {
+    result.success(flashSupported);
   }
 
   private void prepareMediaRecorder(String outputFilePath) throws IOException {
@@ -298,6 +328,11 @@ public class Camera {
 
     // Create a new capture builder.
     captureRequestBuilder = cameraDevice.createCaptureRequest(templateType);
+
+    // When starting a video recording, re-enable flash torch if we had it enabled before starting
+    if (torchEnabled) {
+      captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
+    }
 
     // Build Flutter surface to render to
     SurfaceTexture surfaceTexture = flutterTexture.surfaceTexture();

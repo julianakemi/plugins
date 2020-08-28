@@ -158,6 +158,7 @@ class CameraValue {
     this.isRecordingVideo,
     this.isTakingPicture,
     this.isStreamingImages,
+    this.torchEnabled,
     bool isRecordingPaused,
   }) : _isRecordingPaused = isRecordingPaused;
 
@@ -168,6 +169,7 @@ class CameraValue {
           isTakingPicture: false,
           isStreamingImages: false,
           isRecordingPaused: false,
+          torchEnabled: false,
         );
 
   /// True after [CameraController.initialize] has completed successfully.
@@ -183,6 +185,9 @@ class CameraValue {
   final bool isStreamingImages;
 
   final bool _isRecordingPaused;
+
+  /// True when flash torch is enabled.
+  final bool torchEnabled;
 
   /// True when camera [isRecordingVideo] and recording is paused.
   bool get isRecordingPaused => isRecordingVideo && _isRecordingPaused;
@@ -209,6 +214,7 @@ class CameraValue {
     String errorDescription,
     Size previewSize,
     bool isRecordingPaused,
+    bool torchEnabled,
   }) {
     return CameraValue(
       isInitialized: isInitialized ?? this.isInitialized,
@@ -218,6 +224,7 @@ class CameraValue {
       isTakingPicture: isTakingPicture ?? this.isTakingPicture,
       isStreamingImages: isStreamingImages ?? this.isStreamingImages,
       isRecordingPaused: isRecordingPaused ?? _isRecordingPaused,
+      torchEnabled: torchEnabled ?? this.torchEnabled,
     );
   }
 
@@ -229,6 +236,7 @@ class CameraValue {
         'isInitialized: $isInitialized, '
         'errorDescription: $errorDescription, '
         'previewSize: $previewSize, '
+        'torchEnabled: $torchEnabled, '
         'isStreamingImages: $isStreamingImages)';
   }
 }
@@ -580,6 +588,77 @@ class CameraController extends ValueNotifier<CameraValue> {
         'resumeVideoRecording',
         <String, dynamic>{'textureId': _textureId},
       );
+    } on PlatformException catch (e) {
+      throw CameraException(e.code, e.message);
+    }
+  }
+
+  /// Enables flash torch mode
+  Future<void> enableTorch() async {
+    if (!value.isInitialized || _isDisposed) {
+      throw CameraException(
+        'Uninitialized CameraController',
+        'enableTorch was called on uninitialized CameraController',
+      );
+    }
+    if (value.isTakingPicture) {
+      throw CameraException(
+        'Previous capture has not returned yet.',
+        'takePicture was called before the previous capture returned.',
+      );
+    }
+    if (value.torchEnabled) {
+      return;
+    }
+    try {
+      await _channel.invokeMethod<void>('enableTorch');
+      value = value.copyWith(torchEnabled: true);
+    } on PlatformException catch (e) {
+      throw CameraException(e.code, e.message);
+    }
+  }
+
+  /// Disables flash torch mode
+  Future<void> disableTorch() async {
+    if (!value.isInitialized || _isDisposed) {
+      throw CameraException(
+        'Uninitialized CameraController',
+        'disableTorch was called on uninitialized CameraController',
+      );
+    }
+    if (value.isTakingPicture) {
+      throw CameraException(
+        'Previous capture has not returned yet.',
+        'takePicture was called before the previous capture returned.',
+      );
+    }
+    if (!value.torchEnabled) {
+      return;
+    }
+    try {
+      await _channel.invokeMethod<void>('disableTorch');
+      value = value.copyWith(torchEnabled: false);
+    } on PlatformException catch (e) {
+      throw CameraException(e.code, e.message);
+    }
+  }
+
+  /// Check if the camera supports torch mode
+  Future<bool> hasTorch() async {
+    if (!value.isInitialized || _isDisposed) {
+      throw CameraException(
+        'Uninitialized CameraController',
+        'disableTorch was called on uninitialized CameraController',
+      );
+    }
+    if (value.isTakingPicture) {
+      throw CameraException(
+        'Previous capture has not returned yet.',
+        'takePicture was called before the previous capture returned.',
+      );
+    }
+    try {
+      return _channel.invokeMethod<bool>('hasTorch');
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
