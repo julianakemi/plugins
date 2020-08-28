@@ -1,10 +1,6 @@
-## 0.5.8+5
-
-* Fix compilation/availability issues on iOS.
-
 ## 0.5.8+4
 
-* Fixed bug caused by casting a `CameraAccessException` on Android.
+* Android: Added support for JPEG callback in image stream.
 
 ## 0.5.8+3
 

@@ -106,6 +106,7 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
       case "startImageStream":
         {
           try {
+            call.arguments();
             camera.startPreviewWithImageStream(imageStreamChannel);
             result.success(null);
           } catch (Exception e) {
@@ -145,6 +146,7 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
     String cameraName = call.argument("cameraName");
     String resolutionPreset = call.argument("resolutionPreset");
     boolean enableAudio = call.argument("enableAudio");
+    int androidFormatCode = call.argument("androidFormatCode");
     TextureRegistry.SurfaceTextureEntry flutterSurfaceTexture =
         textureRegistry.createSurfaceTexture();
     DartMessenger dartMessenger = new DartMessenger(messenger, flutterSurfaceTexture.id());
@@ -155,7 +157,8 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
             dartMessenger,
             cameraName,
             resolutionPreset,
-            enableAudio);
+            enableAudio,
+            androidFormatCode);
 
     camera.open(result);
   }
